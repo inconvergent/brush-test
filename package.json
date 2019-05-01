@@ -1,0 +1,21 @@
+{
+    "dependencies": {
+        "express": "^4.16.3",
+        "p5": "^0.8.0"
+    },
+    "description": "brush test",
+    "engines": {
+        "node": "8.x"
+    },
+    "keywords": [
+        "node",
+        "express"
+    ],
+    "license": "MIT",
+    "main": "server.js",
+    "name": "brush-test",
+    "scripts": {
+        "start": "PORT=4000 node server.js"
+    },
+    "version": "0.0.1"
+}
