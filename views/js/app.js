@@ -2,15 +2,27 @@
    windowHeight, windowWidth, cos, sin, random, vec, rndInCirc
 */
 
-let state, mid, win;
+let state;
 
 
+function makeBristles(bnum, blen, rad){
+  const bristles = [];
+  for (let i=0; i < bnum; i++){
+    const r = random();
+    const a = random(-PI, PI);
+    bristles.push({
+      xy: vec(cos(a)*r*rad, sin(a)*r*rad),
+      l: blen * (1.0 - r)});
+  }
+  return bristles;
+}
 
-function init(s, xy){
-  state.verts = getBox(s.x, s.y, xy);
-  state.path = getRange(state.verts.length);
-  state.path.push(0);
-  console.log(state);
+
+function makeBrush(bnum, blen, rad){
+  return {
+    blen, bnum, rad,
+    bristles: makeBristles(bnum, blen, rad)
+  };
 }
 
 
@@ -19,86 +31,70 @@ function setup(){
   win = vec(1000, 1000);
   angleMode(RADIANS);
   createCanvas(win.x, win.y);
-  strokeWeight(2);
+  //strokeWeight(2);
+  fill('rgba(0,0,0,0.03)');
+  noStroke();
 
   state = {
     mouse: null,
+    mousePrev: null,
+    speed: 0,
+    brush: makeBrush(100, 60.0, 30.0),
     win,
-    selectedEdge: null,
-    inside: v => v && (v.x>0 && v.x<win.x && v.y>0 && v.y<win.y),
   };
-
-  init(win.copy().mult(0.1), win.copy().mult(0.5));
+  console.log(state);
 }
 
-function lineDistance(mouse){
-  let dst = 1000000;
-  let pi = 0;
-  let xy = vec(0, 0);
-  for (let i=0; i<state.path.length-1; i++){
-    distance = linePointDistance([state.verts[state.path[i]],
-                                  state.verts[state.path[i+1]]], mouse);
-    if (distance.dst < dst){
-      dst = distance.dst;
-      pi = i;
-      xy = distance.xy;
+
+//function mouseClicked(){
+//}
+
+function getDot(xy, df, h, blen){
+  return xy.copy().add(df.copy().mult(sqrt(pow(blen, 2.0) - pow(h, 2.0))));
+}
+
+function mouseDiff(){
+  if (state.mouse && state.mousePrev){
+    const df = state.mousePrev.copy().sub(state.mouse);
+    const l = df.mag();
+    if (l <= 0.001){
+      state.speed = 0;
+      return null;
     }
+    state.speed = l;
+    return df.div(l);
   }
-  drawCirc([xy]);
-  drawPath([xy, mouse]);
-  return pi;
+  return null;
 }
 
-
-function extrudeEdge(pi){
-  const numVerts = state.verts.length;
-  const numEdges = state.path.length;
-
-  const a = state.path[pi];
-  const b = state.path[pi+1];
-  const va = state.verts[a];
-  const vb = state.verts[b];
-
-  const angleVec = vb.copy().sub(va).normalize();
-  const angle = Math.atan2(angleVec.y, angleVec.x)-HALF_PI;
-
-  const mag = rndBetween(20, 100);
-  const v = p5.Vector.fromAngle(angle).setMag(mag);
-
-  if (random()<0.4){
-    v.add(rndInCirc(mag*0.7));
+function drawStroke(a, b, n){
+  for (let i=0; i < n; i++){
+    const xy = p5.Vector.lerp(a, b, random());
+    square(xy.x, xy.y, 1);
   }
-
-  state.verts.push(va.copy().add(v));
-  state.verts.push(vb.copy().add(v));
-
-  let newPath = state.path.slice(0, pi+1);
-  newPath.push(numVerts);
-  newPath.push(numVerts+1);
-  newPath.push.apply(newPath, state.path.slice(pi+1));
-  state.path = newPath;
 }
 
+function brushDraw(df, w=0.5){
+  if (df && w){
+    console.log(w)
+    const xy = state.mouse;
+    const blen = state.brush.blen;
+    const h = (1.0 - w)*blen;
 
-function mouseClicked(){
-  if (state.selectedEdge !== null){
-    extrudeEdge(state.selectedEdge);
-    state.selectedEdge = null;
+    for (let i=0; i < state.brush.bnum; i++){
+      const bristle = state.brush.bristles[i];
+      if (bristle.l > h){
+        const xya = xy.copy().add(bristle.xy);
+        drawStroke(xya, getDot(xya, df, h, blen), 40);
+      }
+    }
   }
 }
 
 function draw(){
-  const mouse = vec(mouseX, mouseY);
-
-  clear();
-
-  drawPath(state.path.map(i => state.verts[i]));
-
-  state.selectedEdge = null;
-
-  if (state.inside(mouse)){
-    state.selectedEdge = lineDistance(mouse);
-  }
-
-  drawCirc(state.verts, 10);
+  state.mousePrev = state.mouse;
+  state.mouse = vec(mouseX, mouseY);
+  const df = mouseDiff();
+  const maxSpeed = 10;
+  brushDraw(df, 1.0 - min(max(0, state.speed), maxSpeed)/maxSpeed);
 }
