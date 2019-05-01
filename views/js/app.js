@@ -76,7 +76,6 @@ function drawStroke(a, b, n){
 
 function brushDraw(df, w=0.5){
   if (df && w){
-    console.log(w)
     const xy = state.mouse;
     const blen = state.brush.blen;
     const h = (1.0 - w)*blen;
@@ -98,3 +97,4 @@ function draw(){
   const maxSpeed = 10;
   brushDraw(df, 1.0 - min(max(0, state.speed), maxSpeed)/maxSpeed);
 }
+

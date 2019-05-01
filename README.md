@@ -1,5 +1,5 @@
 Brush Test
 =========
 
-Interactive demo written using p5.js.
+Interactive demo written in p5.js.
 
