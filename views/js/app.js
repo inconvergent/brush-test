@@ -8,7 +8,7 @@ let state;
 function makeBristles(bnum, blen, rad){
   const bristles = [];
   for (let i=0; i < bnum; i++){
-    const r = random();
+    const r = sqrt(random());
     const a = random(-PI, PI);
     bristles.push({
       xy: vec(cos(a)*r*rad, sin(a)*r*rad),
@@ -36,10 +36,9 @@ function setup(){
   noStroke();
 
   state = {
-    mouse: null,
-    mousePrev: null,
+    mouse: [],
     speed: 0,
-    brush: makeBrush(100, 60.0, 30.0),
+    brush: makeBrush(200, 50.0, 20.0),
     win,
   };
   console.log(state);
@@ -53,9 +52,23 @@ function getDot(xy, df, h, blen){
   return xy.copy().add(df.copy().mult(sqrt(pow(blen, 2.0) - pow(h, 2.0))));
 }
 
+function midPos(a){
+  const l = a.length;
+  const v = vec(0, 0);
+  let s = 0;
+  for (let i=0; i < l-1; i++){
+    v.add(a[i].copy().mult(i));
+    s += i;
+  }
+  return v.div(s);
+}
+
 function mouseDiff(){
-  if (state.mouse && state.mousePrev){
-    const df = state.mousePrev.copy().sub(state.mouse);
+  const i = state.mouse.length;
+  if (i > 1){
+    const mp = midPos(state.mouse);
+    //const df = state.mouse[i-2].copy().sub(state.mouse[i-1]);
+    const df = mp.copy().sub(state.mouse[i-1]);
     const l = df.mag();
     if (l <= 0.001){
       state.speed = 0;
@@ -76,7 +89,8 @@ function drawStroke(a, b, n){
 
 function brushDraw(df, w=0.5){
   if (df && w){
-    const xy = state.mouse;
+    const i = state.mouse.length;
+    const xy = state.mouse[i-1];
     const blen = state.brush.blen;
     const h = (1.0 - w)*blen;
 
@@ -84,17 +98,19 @@ function brushDraw(df, w=0.5){
       const bristle = state.brush.bristles[i];
       if (bristle.l > h){
         const xya = xy.copy().add(bristle.xy);
-        drawStroke(xya, getDot(xya, df, h, blen), 40);
+        drawStroke(xya, getDot(xya, df, h, blen), 20);
       }
     }
   }
 }
 
 function draw(){
-  state.mousePrev = state.mouse;
-  state.mouse = vec(mouseX, mouseY);
+  state.mouse.push(vec(mouseX, mouseY));
+  if (state.mouse.length>10){
+    state.mouse = state.mouse.slice(1, 11);
+  }
   const df = mouseDiff();
-  const maxSpeed = 10;
-  brushDraw(df, 1.0 - min(max(0, state.speed), maxSpeed)/maxSpeed);
+  const maxSpeed = 100;
+  brushDraw(df, pow(1.0 - min(max(0, state.speed), maxSpeed)/maxSpeed, 2.0));
 }
 
